@@ -1,6 +1,6 @@
 use std::{env::args, num::ParseIntError, ops::RangeInclusive, process::exit, vec};
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 struct HostSpec {
     numeric: RangeInclusive<u64>,
     prefix: String,
@@ -27,13 +27,15 @@ impl HostSpec {
     }
 }
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, PartialEq)]
 enum ParseError {
     #[error("the expression contained a spec with unknown extra characters (e.g after the closing ']' character)")]
     ExtraStuff,
     #[error("the expression contained a spec with numbers that couldn't be understood, or no numbers at all")]
     BadNumbers(#[from] ParseIntError),
-    #[error("the expression contained a spec that looked like a range[numbers], but was badly formed")]
+    #[error(
+        "the expression contained a spec that looked like a range[numbers], but was badly formed"
+    )]
     NoRange,
 }
 
@@ -73,6 +75,49 @@ fn transform_single_hostspec(item: impl AsRef<str>) -> Result<Vec<HostSpec>, Par
     } else {
         // Convert the single hostspec into a vec of hostspec, or just pass on the err
         HostSpec::from_single(raw).map(|i| vec![i])
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::{transform_single_hostspec, HostSpec};
+
+    #[test]
+    fn test_basics() -> anyhow::Result<()> {
+        assert_eq!(
+            transform_single_hostspec("host[1234]"),
+            Ok(vec![HostSpec {
+                numeric: 1234..=1234,
+                prefix: "host".into(),
+            }])
+        );
+        assert_eq!(
+            transform_single_hostspec("host[10-100,500]"),
+            Ok(vec![
+                HostSpec {
+                    numeric: 10..=100,
+                    prefix: "host".into(),
+                },
+                HostSpec {
+                    numeric: 500..=500,
+                    prefix: "host".into(),
+                }
+            ])
+        );
+        assert_eq!(
+            transform_single_hostspec("xxx[1,2]"),
+            Ok(vec![
+                HostSpec {
+                    numeric: 1..=1,
+                    prefix: "xxx".into(),
+                },
+                HostSpec {
+                    numeric: 2..=2,
+                    prefix: "xxx".into(),
+                }
+            ])
+        );
+        Ok(())
     }
 }
 
