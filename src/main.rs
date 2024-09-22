@@ -1,4 +1,6 @@
-use std::{env::args, num::ParseIntError, ops::RangeInclusive, process::exit, vec};
+use std::{num::ParseIntError, ops::RangeInclusive, process::exit, vec};
+
+use clap::Parser;
 
 #[derive(Debug, PartialEq)]
 struct HostSpec {
@@ -78,6 +80,33 @@ fn transform_single_hostspec(item: impl AsRef<str>) -> Result<Vec<HostSpec>, Par
     }
 }
 
+#[derive(clap::Parser)]
+struct CmdArgs {
+    /// Any number of host specs, separated by whitespace e.g host[123]
+    items: Vec<String>,
+}
+
+fn main() {
+    let cla = CmdArgs::parse();
+    cla.items
+        .iter()
+        .enumerate() // enumerate (with numeric indexes) the args, so we can use the index for error output
+        .filter(|(_, s)| !s.is_empty()) // skip any empty args (not sure if these are even possible, because shell?)
+        .map(|(n, arg)| (n, transform_single_hostspec(arg))) // map each (inner, unenumerated) arg into a vec of hostspecs
+        .flat_map(|(n, m)| {
+            // stop on the first error (flattening as we go)
+            if let Err(e) = m {
+                eprintln!("error at arg {n}: {}", e);
+                exit(1)
+            } else {
+                m
+            }
+        })
+        .flatten() // flatten each _arg_ to single hostspecs (some single _args_ may contain many _hostspecs_ - e.g host[1-10,20-30] would contain 2 hostspecs)
+        .flatten() // flatten each _hostspec_ into an array of strings (to cover ranges, e.g host[1-10] would make 10 strings)
+        .for_each(|h| println!("{}", h)); // finally, print each single host, on a single line
+}
+
 #[cfg(test)]
 mod test {
     use crate::{transform_single_hostspec, HostSpec};
@@ -119,24 +148,4 @@ mod test {
         );
         Ok(())
     }
-}
-
-fn main() {
-    args()
-        .enumerate() // enumerate (with numeric indexes) the args, so we can use the index for error output
-        .skip(1) // skip the first arg, the executable name
-        .filter(|(_, s)| !s.is_empty()) // skip any empty args (not sure if these are even possible, because shell?)
-        .map(|(n, arg)| (n, transform_single_hostspec(arg))) // map each (inner, unenumerated) arg into a vec of hostspecs
-        .flat_map(|(n, m)| {
-            // stop on the first error (flattening as we go)
-            if let Err(e) = m {
-                eprintln!("error at arg {n}: {}", e);
-                exit(1)
-            } else {
-                m
-            }
-        })
-        .flatten() // flatten each _arg_ to single hostspecs (some single _args_ may contain many _hostspecs_ - e.g host[1-10,20-30] would contain 2 hostspecs)
-        .flatten() // flatten each _hostspec_ into an array of strings (to cover ranges, e.g host[1-10] would make 10 strings)
-        .for_each(|h| println!("{}", h)); // finally, print each single host, on a single line
 }
