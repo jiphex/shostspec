@@ -21,6 +21,19 @@ host8100
 Provide the arguments on the command-line, you get out a newline-separated list
 with each individual host.
 
+You can prefix the first entry in the range with zeros to set the width of the
+output, e.g `shostspec host[0001-1999]` will create output like this:
+
+```shell
+host0001
+host0002
+...
+host0010
+...
+...
+host1999
+```
+
 Pre-empting some questions/feature requests:
 
 - If you need the output separated by spaces or commas or whatever, use
