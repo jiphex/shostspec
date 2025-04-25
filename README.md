@@ -45,8 +45,9 @@ Pre-empting some questions/feature requests:
 - There's no way to reverse the format, turning lists into minimal expressions,
   but that sounds like a fun algorithmic challenge (I'm not sure why it would be
   useful)
-- Every host has to have a number, because of the way that the parsing works, I
+- Every host has to have a number range, because of the way that the parsing works, I
   guess just `cat` anything else on the end?
-- Reverse ranges don't work, but I don't think Slurm or whatever would ever
+- You can't yet have more than one range in the expression (e.g `cpu[1-10]-[2-5]`), but I don't think this would be too difficult to add (patches welcome)
+- Reversed ranges don't work, but I don't think Slurm or whatever would ever
   generate them anyway
-- Some test cases would be nice
+- More test cases would be nice
