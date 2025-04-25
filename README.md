@@ -34,6 +34,8 @@ host0010
 host1999
 ```
 
+![A screenshot showing output similar to above](images/screenshot.png)
+
 Pre-empting some questions/feature requests:
 
 - If you need the output separated by spaces or commas or whatever, use
